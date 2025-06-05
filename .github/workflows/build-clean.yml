@@ -27,10 +27,13 @@ jobs:
             -o builds.json \
             "https://portalapi.commerce.ondemand.com/v2/subscriptions/7a7a411d20a24eeab30ce5fa10ff0137/builds?statusNot=BUILDING,DELETED&$top=2000&$skip=0&$count=true&$orderby=buildStartTimestamp%20desc"
 
+          echo "Contents of builds.json:"
+          cat builds.json | jq .
+
           echo "Filtering builds older than 30 days..."
 
           THIRTY_DAYS_AGO=$(date -d '30 days ago' +%s)
-          echo $THIRTY_DAYS_AGO
+          echo "Timestamp 30 days ago: $THIRTY_DAYS_AGO"
 
           codes=$(jq -r --argjson ts "$THIRTY_DAYS_AGO" '
             .value[] |
