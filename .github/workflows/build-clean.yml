@@ -30,6 +30,7 @@ jobs:
           echo "Filtering builds older than 30 days..."
 
           THIRTY_DAYS_AGO=$(date -d '30 days ago' +%s)
+          echo $THIRTY_DAYS_AGO
 
           codes=$(jq -r --argjson ts "$THIRTY_DAYS_AGO" '
             .value[] |
