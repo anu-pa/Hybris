@@ -1,4 +1,5 @@
 name: RE-CCV2-Build-CleanUp
+
 on:
   workflow_dispatch:
 
@@ -9,36 +10,35 @@ concurrency:
   group: ${{ github.workflow }}
 
 jobs:
- cleanup-old-builds: 
-  name: Clean Up Old Builds
-  runs-on: ubuntu-latest  # Replace '????' with a valid GitHub-hosted runner
+  cleanup-old-builds: 
+    name: Clean Up Old Builds
+    runs-on: ubuntu-latest
 
-  steps:
-    - name: Fetch Build Codes
-      id: fetch_code
-      run: |
-        echo "Fetch build codes from SAP"
+    steps:
+      - name: Fetch Build Codes
+        id: fetch_code
+        run: |
+          echo "Fetch build codes from SAP"
 
-        curl -s \
-          -H "Accept: application/json" \
-          -H "Authorization: Bearer ${{ secrets.CCV2_TOKEN }}" \
-          -X GET \
-          -o builds.json \
-          "https://portalapi.commerce.ondemand.com/v2/subscriptions/${{ secrets.SUBSCRIPTION_ID }}/builds?statusNot=BUILDING,DELETED&$top=2000&$skip=0&$count=true&$orderby=buildStartTimestamp%20desc"
+          curl -s \
+            -H "Accept: application/json" \
+            -H "Authorization: Bearer ${{ secrets.CCV2_TOKEN }}" \
+            -X GET \
+            -o builds.json \
+            "https://portalapi.commerce.ondemand.com/v2/subscriptions/${{ secrets.SUBSCRIPTION_ID }}/builds?statusNot=BUILDING,DELETED&$top=2000&$skip=0&$count=true&$orderby=buildStartTimestamp%20desc"
 
-        echo "Filtering builds older than 30 days..."
+          echo "Filtering builds older than 30 days..."
 
-        THIRTY_DAYS_AGO=$(date -d '30 days ago' +%s)
+          THIRTY_DAYS_AGO=$(date -d '30 days ago' +%s)
 
-        codes=$(jq -r --argjson ts "$THIRTY_DAYS_AGO" '
-          .value[] |
-          select(
-            .branch | contains("develop") and
-            .hasSnapshot == false and
-            .deployed == false and
-            ( (.buildStartTimestamp | sub("\\.\\d+Z$"; "Z") | fromdateiso8601) < $ts )
-          ) | .code
-        ' builds.json)
+          codes=$(jq -r --argjson ts "$THIRTY_DAYS_AGO" '
+            .value[] |
+            select(
+              .hasSnapshot == false and
+              .deployed == false and
+              ( (.buildStartTimestamp | sub("\\.\\d+Z$"; "Z") | fromdateiso8601) < $ts )
+            ) | .code
+          ' builds.json)
 
-        echo "First 5 eligible build codes:"
-        echo "$codes" | head -n 5
+          echo "First 5 eligible build codes:"
+          echo "$codes" | head -n 5
