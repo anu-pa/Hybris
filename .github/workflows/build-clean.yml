@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: '0 0 1 1 *'
+    - cron: '*/5 * * * *'
 
 concurrency:
   group: ${{ github.workflow }}
@@ -21,10 +21,10 @@ jobs:
           
           curl -s \
           -H "Accept: application/json" \
-          -H "Authorization: Bearer b6d7e549193461a68b56f21db1a1f29" \
+          -H "Authorization: Bearer ${{ secrets.CCV2_TOKEN }}" \
           -X GET \
           -o builds.json \
-          "https://portalapi.commerce.ondemand.com/v2/subscriptions/7a7a411d20a24eeab30ce5fa10ff0137/builds?statusNot=BUILDING,SCHEDULED,DELETED&$top=2000&$count=true&$orderby=buildStartTimestamp%20desc"
+          "https://portalapi.commerce.ondemand.com/v2/subscriptions/${{ secrets.SUBSCRIPTION_ID }}/builds?statusNot=BUILDING,SCHEDULED,DELETED&$top=2000&$count=true&$orderby=buildStartTimestamp%20desc"
 
           # Function to find and delete old builds by branch type
           
@@ -41,7 +41,10 @@ jobs:
           )
           
           total_builds=${#build_codes[@]}
-          
+          for code in "${build_codes[@]}"; do
+             echo "Do something with $code"
+               done
+                   }
           if [ "$total_builds" -le 25 ]; then
           echo "Only $total_builds builds found for '$branch_name'. No deletion needed."
           return
@@ -49,10 +52,7 @@ jobs:
           
           echo "Found $total_builds builds for '$branch_name'. Deleting $((total_builds - 25)) oldest builds..."
           
-            for code in "${build_codes[@]}"; do
-             echo "Do something with $code"
-               done
-                   }
+            
         
               delete_old_builds "develop"
             delete_old_builds "release"
