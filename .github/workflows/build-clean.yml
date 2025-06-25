@@ -49,18 +49,7 @@ jobs:
           
           echo "Found $total_builds builds for '$branch_name'. Deleting $((total_builds - 25)) oldest builds..."
           
-          for ((i=25; i<total_builds; i++)); do
-          code="${build_codes[i]}"
-          echo "Deleting build: $code"
-          curl -s \
-          -X DELETE \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer ${{ secrets.CCV2_TOKEN }}" \
-          "https://portalapi.commerce.ondemand.com/v2/subscriptions/${{ secrets.SUBSCRIPTION_ID }}/builds/$code"
-          sleep 5
-          done
-          }
-        
+          
               delete_old_builds "develop"
             delete_old_builds "release"
             delete_old_builds "sprint"
