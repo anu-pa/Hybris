@@ -1,51 +1,58 @@
 name: RE-CCV2-Build-CleanUp
-
 on:
   workflow_dispatch:
 
   schedule:
-    - cron: '*/5 * * * *'
+    -cron: '00 1 * * *'
 
 concurrency:
   group: ${{ github.workflow }}
 
 jobs:
-  cleanup-old-builds: 
-    name: Clean Up Old Builds
-    runs-on: ubuntu-latest
+  name: Clean Up Old Builds
+  runs-on: ????
+  steps:
+    - name: Fetch Build Codes
+      id: fetch_code
+      run: |
+             echo "Fetch build codes from SAP"
+             
+             curl -s \
+             -H "Accept: application/json" \
+             -H "Authorization: Bearer ${{ secrets.CCV2_TOKEN }}" \
+             -X GET \
+             -o builds.json \
+             "https://portalapi.commerce.ondemand.com/v2/subscriptions/${{ secrets.SUBSCRIPTION_ID }}/builds?statusNot=BUILDING,SCHEDULED,DELETED&$top=2000&$count=true&$orderby=buildStartTimestamp%20desc"
 
-    steps:
-      - name: Fetch Build Codes
-        id: fetch_code
-        run: |
-          echo "Fetch build codes from SAP"
-
-          curl -s \
-            -H "Accept: application/json" \
-            -H "Authorization: Bearer 48665f90287c2ce5d201aceb20e42c" \
-            -X GET \
-            -o builds.json \
-            "https://portalapi.commerce.ondemand.com/v2/subscriptions/7a7a411d20a24eeab30ce5fa10ff0137/builds?statusNot=BUILDING,DELETED&$top=400&$skip=0&$count=true&$orderby=buildStartTimestamp%20desc"
-
-          echo "Contents of builds.json:"
-          cat builds.json | jq .
-
-          echo "Filtering builds older than 30 days..."
-
-          THIRTY_DAYS_AGO=$(date -d '30 days ago' +%s)
-          echo "Timestamp 30 days ago: $THIRTY_DAYS_AGO"
-
-          codes=$(jq -r --argjson ts "$THIRTY_DAYS_AGO" '
-          .value[] |
-            select(
-                  .hasSnapshot == false and
-                     .deployed == false and
-                   ( (.buildStartTimestamp | sub("\\.\\d+Z$"; "Z") | fromdateiso8601) < $ts )
-                    ) | .code
-                  ' builds.json)
-
-                    echo "Eligible build codes:"
-                    echo "$codes" | while IFS= read -r code; do
-                    echo "$code"
-                    done
-
+        # Function to find and delete old builds by branch type
+             
+             delete_old_builds() {
+             branch_name=$1
+             echo "Processing builds for $branch_name branch..."
+             
+             mapfile -t build_codes < <(
+             if [[ "$branch_name" == "sprint" ]]; then
+             jq -r '.value[] | select((.branch | startswith("sprint/")) and .hasSnapshot == false and .deployed == false) | .code' builds.json
+             else
+             jq -r --arg branch "$branch_name" '.value[] | select((.branch == $branch) and .hasSnapshot == false and .deployed == false) | .code' builds.json
+             fi
+             )
+             
+             total_builds=${#build_codes[@]}
+             
+             if [ "$total_builds" -le 25 ]; then
+             echo "Only $total_builds builds found for '$branch_name'. No deletion needed."
+             return
+             fi
+             
+             echo "Found $total_builds builds for '$branch_name'. Deleting $((total_builds - 25)) oldest builds..."
+        
+          for code in "${build_codes[@]}"; do
+             echo "Do something with $code"
+              done
+                }
+            }
+             
+             delete_old_builds "develop"
+             delete_old_builds "release"
+             delete_old_builds "sprint"
