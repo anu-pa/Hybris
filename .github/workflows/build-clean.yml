@@ -39,10 +39,10 @@ jobs:
           jq -r --arg branch "$branch_name" '.value[] | select((.branch == $branch) and .hasSnapshot == false and .deployed == false) | .code' builds.json
           fi
           )
-            echo "Build codes found for '$branch_name' branch:"
-              for code in "${build_codes[@]}"; do
-               echo "  - $code"
-                 done
+            # echo "Build codes found for '$branch_name' branch:"
+            #   for code in "${build_codes[@]}"; do
+            #    echo "  - $code"
+            #      done
           
           total_builds=${#build_codes[@]}
           
