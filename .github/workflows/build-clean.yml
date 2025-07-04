@@ -1,7 +1,7 @@
 name: RE-CCV2-Build-CleanUp
+
 on:
   workflow_dispatch:
-
   schedule:
     - cron: '0 0 1 1 *'
 
@@ -20,11 +20,11 @@ jobs:
           echo "Fetch build codes from SAP"
 
           curl -s \
-          -H "Accept: application/json" \
-          -H "Authorization: Bearer b6d7e549193461a68b56f21db1a1f29" \
-          -X GET \
-          -o builds.json \
-          "https://portalapi.commerce.ondemand.com/v2/subscriptions/7a7a411d20a24eeab30ce5fa10ff0137/builds?statusNot=BUILDING,SCHEDULED,DELETED&$top=2000&$count=true&$orderby=buildStartTimestamp%20desc"
+            -H "Accept: application/json" \
+            -H "Authorization: Bearer b6d7e549193461a68b56f21db1a1f29" \
+            -X GET \
+            -o builds.json \
+            "https://portalapi.commerce.ondemand.com/v2/subscriptions/7a7a411d20a24eeab30ce5fa10ff0137/builds?statusNot=BUILDING,SCHEDULED,DELETED&$top=2000&$count=true&$orderby=buildStartTimestamp%20desc"
 
           # Function to find and delete old builds by branch type
           delete_old_builds() {
@@ -33,15 +33,25 @@ jobs:
 
             mapfile -t build_codes < <(
               if [[ "$branch_name" == "sprint" ]]; then
-                jq -r '.value[] | select((.branch | startswith("sprint/")) and .hasSnapshot == false and .deployed == false) | .code' builds.json
+                jq -r '
+                  .value 
+                  | map(select((.branch | startswith("sprint/")) and .hasSnapshot == false and .deployed == false)) 
+                  | sort_by(.buildStartTimestamp) 
+                  | reverse 
+                  | .[].code' builds.json
               else
-                jq -r --arg branch "$branch_name" '.value[] | select((.branch == $branch) and .hasSnapshot == false and .deployed == false) | .code' builds.json
+                jq -r --arg branch "$branch_name" '
+                  .value 
+                  | map(select((.branch == $branch) and .hasSnapshot == false and .deployed == false)) 
+                  | sort_by(.buildStartTimestamp) 
+                  | reverse 
+                  | .[].code' builds.json
               fi
             )
 
             total_builds=${#build_codes[@]}
-
             echo "Total matching builds for '$branch_name': $total_builds"
+
             if [ "$total_builds" -eq 0 ]; then
               echo "No builds found for '$branch_name'."
               return
@@ -58,7 +68,7 @@ jobs:
             echo "Builds selected for deletion for '$branch_name':"
             for ((i=25; i<total_builds; i++)); do
               echo "${build_codes[$i]}"
-              # Optional: Add deletion API call here
+              # Add deletion logic here
             done
           }
 
