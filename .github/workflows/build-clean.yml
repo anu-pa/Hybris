@@ -39,12 +39,17 @@ jobs:
           jq -r --arg branch "$branch_name" '.value[] | select((.branch == $branch) and .hasSnapshot == false and .deployed == false) | .code' builds.json
           fi
           )
-             echo "Build codes found for '$branch_name' branch:"
-               for code in "${build_codes[@]}"; do
-                echo "  - $code"
-                  done
+             
           
           total_builds=${#build_codes[@]}
+            echo "Total matching builds for '$branch_name': $total_builds"
+            if [ "$total_builds" -eq 0 ]; then
+              echo "No builds found for '$branch_name'."
+              return
+            fi
+
+            echo "All matching build codes for '$branch_name':"
+            printf '%s\n' "${build_codes[@]}"
           
           if [ "$total_builds" -le 25 ]; then
           echo "Only $total_builds builds found for '$branch_name'. No deletion needed."
