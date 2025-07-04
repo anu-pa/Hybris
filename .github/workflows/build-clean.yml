@@ -18,7 +18,7 @@ jobs:
         id: fetch_code
         run: |
           echo "Fetch build codes from SAP"
-          
+
           curl -s \
           -H "Accept: application/json" \
           -H "Authorization: Bearer b6d7e549193461a68b56f21db1a1f29" \
@@ -27,21 +27,20 @@ jobs:
           "https://portalapi.commerce.ondemand.com/v2/subscriptions/7a7a411d20a24eeab30ce5fa10ff0137/builds?statusNot=BUILDING,SCHEDULED,DELETED&$top=2000&$count=true&$orderby=buildStartTimestamp%20desc"
 
           # Function to find and delete old builds by branch type
-          
           delete_old_builds() {
-          branch_name=$1
-          echo "Processing builds for $branch_name branch..."
-          
-          mapfile -t build_codes < <(
-          if [[ "$branch_name" == "sprint" ]]; then
-          jq -r '.value[] | select((.branch | startswith("sprint/")) and .hasSnapshot == false and .deployed == false) | .code' builds.json
-          else
-          jq -r --arg branch "$branch_name" '.value[] | select((.branch == $branch) and .hasSnapshot == false and .deployed == false) | .code' builds.json
-          fi
-          )
-             
-          
-          total_builds=${#build_codes[@]}
+            branch_name=$1
+            echo "Processing builds for '$branch_name' branch..."
+
+            mapfile -t build_codes < <(
+              if [[ "$branch_name" == "sprint" ]]; then
+                jq -r '.value[] | select((.branch | startswith("sprint/")) and .hasSnapshot == false and .deployed == false) | .code' builds.json
+              else
+                jq -r --arg branch "$branch_name" '.value[] | select((.branch == $branch) and .hasSnapshot == false and .deployed == false) | .code' builds.json
+              fi
+            )
+
+            total_builds=${#build_codes[@]}
+
             echo "Total matching builds for '$branch_name': $total_builds"
             if [ "$total_builds" -eq 0 ]; then
               echo "No builds found for '$branch_name'."
@@ -50,16 +49,20 @@ jobs:
 
             echo "All matching build codes for '$branch_name':"
             printf '%s\n' "${build_codes[@]}"
-          
-          if [ "$total_builds" -le 25 ]; then
-          echo "Only $total_builds builds found for '$branch_name'. No deletion needed."
-          return
-          fi
-          
-          echo "Found $total_builds builds for '$branch_name'. Deleting $((total_builds - 25)) oldest builds..."
-          
-          
-          
-              delete_old_builds "develop"
-            delete_old_builds "release"
-            delete_old_builds "sprint"
+
+            if [ "$total_builds" -le 25 ]; then
+              echo "Only $total_builds builds found for '$branch_name'. No deletion needed."
+              return
+            fi
+
+            echo "Builds selected for deletion for '$branch_name':"
+            for ((i=25; i<total_builds; i++)); do
+              echo "${build_codes[$i]}"
+              # Optional: Add deletion API call here
+            done
+          }
+
+          # Now call the function with each branch
+          delete_old_builds "develop"
+          delete_old_builds "release"
+          delete_old_builds "sprint"
