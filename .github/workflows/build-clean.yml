@@ -21,10 +21,10 @@ jobs:
           
           curl -s \
           -H "Accept: application/json" \
-          -H "Authorization: Bearer ${{ secrets.CCV2_TOKEN }}" \
+          -H "Authorization: Bearer b6d7e549193461a68b56f21db1a1f29" \
           -X GET \
           -o builds.json \
-          "https://portalapi.commerce.ondemand.com/v2/subscriptions/${{ secrets.SUBSCRIPTION_ID }}/builds?statusNot=BUILDING,SCHEDULED,DELETED&$top=2000&$count=true&$orderby=buildStartTimestamp%20desc"
+          "https://portalapi.commerce.ondemand.com/v2/subscriptions/7a7a411d20a24eeab30ce5fa10ff0137/builds?statusNot=BUILDING,SCHEDULED,DELETED&$top=2000&$count=true&$orderby=buildStartTimestamp%20desc"
 
           # Function to find and delete old builds by branch type
           
@@ -39,10 +39,10 @@ jobs:
           jq -r --arg branch "$branch_name" '.value[] | select((.branch == $branch) and .hasSnapshot == false and .deployed == false) | .code' builds.json
           fi
           )
-            # echo "Build codes found for '$branch_name' branch:"
-            #   for code in "${build_codes[@]}"; do
-            #    echo "  - $code"
-            #      done
+             echo "Build codes found for '$branch_name' branch:"
+               for code in "${build_codes[@]}"; do
+                echo "  - $code"
+                  done
           
           total_builds=${#build_codes[@]}
           
@@ -53,8 +53,8 @@ jobs:
           
           echo "Found $total_builds builds for '$branch_name'. Deleting $((total_builds - 25)) oldest builds..."
           
-            
-        
+          
+          
               delete_old_builds "develop"
             delete_old_builds "release"
             delete_old_builds "sprint"
